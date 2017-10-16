@@ -1,0 +1,1 @@
+1)16/10/17: Ethesa to /proc/sys/kernel/yama/ptrace_scope se 0 
