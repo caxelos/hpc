@@ -1,0 +1,52 @@
+
+*** These modified files were found in JOE when it aborted on Mon Oct 16 18:33:45 2017
+*** JOE was aborted by UNIX signal 1
+
+*** File '(Unnamed)'
+golden
+f_in
+
+*** File '(Unnamed)'
+system.txt
+system.txt
+system.txt
+makefile
+0_orig.c
+README.txt
+ptrace_scope
+ptrace_scope
+readme.txt
+programma.txt~
+system.txt
+
+*** File '* Startup Log *'
+Processing '/etc/joe/joerc'...
+Processing '/etc/joe/ftyperc'...
+Finished processing /etc/joe/ftyperc
+Finished processing /etc/joe/joerc
+
+*** These modified files were found in JOE when it aborted on Mon Oct 16 23:02:39 2017
+*** JOE was aborted by UNIX signal 1
+
+*** File '(Unnamed)'
+golden
+f_in
+
+*** File '(Unnamed)'
+makefile
+0_orig.c
+README.txt
+ptrace_scope
+ptrace_scope
+readme.txt
+programma.txt~
+myprog.c
+myprog.c
+myprog.c
+system.txt
+
+*** File '* Startup Log *'
+Processing '/etc/joe/joerc'...
+Processing '/etc/joe/ftyperc'...
+Finished processing /etc/joe/ftyperc
+Finished processing /etc/joe/joerc

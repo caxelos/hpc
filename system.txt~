@@ -1,0 +1,28 @@
+- Leitourgiko  : Ubuntu 16.04 LTS
+- Epeksergastis: Inte Core i5
+- RAM	       : 4GB
+- Core-edition : 4.4.0-97-generic
+- Metaglwtistis: icc
+- Version      : 18.0.0
+
+
+PROCESSORS
+-4 processors, 2cpu cores each, 1800MHz, 1073.359MHz, 1184.531MHz, 1799.96MHz each
+-cache_allignment: 64Bytes
+-address sizes   : 39bits physical, 48 bits virtual
+
+
+CACHES
+CPU0:/sys/device/system/cpu/cpu0/cache:
+  INDEX0: size=32KB,numOfSets=64,level=1,lineSize=64B,
+waysOfAssociativity=8, sharedCpuList{0,2}, sharedCpuMap = 05
+ 
+  INDEX1: size=32KB,numOfSets=64,level=1,lineSize=64B,
+waysOfAssociativity=8, sharedCpuList{0,2}, sharedCpurMap = 05
+
+  INDEX2: size=256KB, numOfSets=512, level=2, lineSize=64B.
+waysOfAssociativity=8, sharedCpuList{0,2}, sharedCpuMap = 05
+
+  INDEX3: size=3072KB, numOfSets=4096, level=3, lineSize=64B,
+waysOfAssociativity=12, sharedCpuList{0-3}, sharedCpuMap = 0f
+
