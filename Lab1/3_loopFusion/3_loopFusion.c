@@ -115,9 +115,10 @@ double sobel(unsigned char *input, unsigned char *output, unsigned char *golden)
 	/* This is the main computation. Get the starting time. */
 	clock_gettime(CLOCK_MONOTONIC_RAW, &tv1);
 	/* For each pixel of the output image */
+	
 	for (i=1; i<SIZE-1; i+=1) {
 		for (j=1; j<SIZE-1; j+=4) {
-			//LOOP 1a
+			//LOOP 1
 			p = pow(convolution2D(i, j, input, horiz_operator), 2) + 
 				pow(convolution2D(i, j, input, vert_operator), 2);
 			res = (int)sqrt(p);
@@ -127,8 +128,7 @@ double sobel(unsigned char *input, unsigned char *output, unsigned char *golden)
 				output[i*SIZE + j] = (unsigned char)res;
 	
 
-
-			//LOOP 2a		 								  
+			//LOOP 2		 								  
 			p = pow(convolution2D(i, j+1, input, horiz_operator), 2) + 
 				pow(convolution2D(i, j+1, input, vert_operator), 2);
 			res = (int)sqrt(p);											  
@@ -138,9 +138,7 @@ double sobel(unsigned char *input, unsigned char *output, unsigned char *golden)
 				output[i*SIZE + j+1] = (unsigned char)res;
 
 
-			
-
-			//LOOP 3a					  
+			//LOOP 3					  
 			p = pow(convolution2D(i, j+2, input, horiz_operator), 2) + 
 				pow(convolution2D(i, j+2, input, vert_operator), 2);
 			res = (int)sqrt(p);											   
@@ -150,8 +148,6 @@ double sobel(unsigned char *input, unsigned char *output, unsigned char *golden)
 				output[i*SIZE + j+2] = (unsigned char)res;
 
 			
-
-
 		
 			//LOOP 4		 
 			p = pow(convolution2D(i, j+3, input, horiz_operator), 2) + 
@@ -171,16 +167,7 @@ double sobel(unsigned char *input, unsigned char *output, unsigned char *golden)
 		}
 	}
 
-	//Now run through the output and the golden output to calculate 
-	// the MSE and then the PSNR.	
-						/*		 
-	for ( i=1; i<SIZE-1; i++ ) {
-		for (j=1; j<SIZE-1; j++) {
-			t = pow((output[i*SIZE+j] - golden[i*SIZE+j]),2);	
-			PSNR += t;					
-		}
-	}*/
-  
+
 	PSNR /= (double)(SIZE*SIZE);
 	PSNR = 10*log10(65536/PSNR);
 
