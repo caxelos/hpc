@@ -5,6 +5,8 @@
 
 
 DIRECTORIES =  0_orig 1_loopInter 2_loopUnrol 3_loopFusion 4_funcInline 5_loopInvariant
+targets = 0_orig/0_orig 1_loopInter/1_loopInter 2_loopUnrol/2_loopUnrol 3_loopFusion/3_loopFusion 4_funcInline/4_funcInline 5_loopInvariant/5_loopInvariant
+
 #SRC_DIR = $(MODULES)
 #BUILD_DIR = $(MODULES)
 
@@ -15,6 +17,8 @@ DIRECTORIES =  0_orig 1_loopInter 2_loopUnrol 3_loopFusion 4_funcInline 5_loopIn
 #Add any executable you want to be created here.
 #EXECUTABLES_O0	= 0_orig_O0 
 #EXECUTABLES_FAST = 0_orig_fast 
+
+
 
 #This is the compiler to use
 CC = icc
@@ -29,15 +33,18 @@ CFLAGS_FAST = -Wall -fast
 
 #$(CC) $(CFLAGS_FAST) -g $1/$1.c  -o $1/$1_fast
 # my make
-define make-goal 
-$1/$1: 
-	$(CC) $(CFLAGS_O0) -c $1/$1.c  -o $1/$1_O0
-	$(CC) $(CFLAGS_FAST) -c $1/$1.c  -o $1/$1_fast	
-endef
+#define make-goal 
+#$1/$1: 
+#	$(CC) $(CFLAGS_O0) -c $1/$1.c  -o $1/$1_O0
+#	$(CC) $(CFLAGS_FAST) -c $1/$1.c  -o $1/$1_fast	
+#endef
 
-.PHONY: all checkdirs clean
-
-$(foreach currDir,$(DIRECTORIES),$(eval $(call make-goal,$(currDir))))
+.PHONY: all 
+all: $(targets)
+$(Directories): $(Directories)%.c
+	$(CC) $(CFLAGS_O0) -g $(Directories)  -o mitsos#$(Directories)
+	#$(CC) $(CFLAGS_FAST) -g $(Directories)  -o $(Directories)
+	#$(foreach currDir,$(DIRECTORIES),$(eval $(call make-goal,$(currDir))))
 
 	
 # This is the rule to create any executable from the corresponding .c 
@@ -46,7 +53,7 @@ $(foreach currDir,$(DIRECTORIES),$(eval $(call make-goal,$(currDir))))
 # make clean will remove all executables, jpg files and the 
 # output of previous executions.
 clean:
-	rm -f $(EXECUTABLES_O0) *.jpg output_sobel.grey
+	rm -f $(targets) *.jpg output_sobel.grey
 
 
 
