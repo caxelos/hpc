@@ -70,7 +70,24 @@ double sobel(unsigned char *input, unsigned char *output, unsigned char *golden)
 	double PSNR = 0, t;
 	int i, j;
 	unsigned int p;
-	register int tmp1, tmp2;
+	int tmp1, tmp2;
+	int iMinus1;//added
+	int iMinus0;//added
+	int iPlus1;//added
+	int jMinus1;//added
+	int jMinus0;//added
+	int jPlus1;//added
+
+	int saveUpLeft;
+	int saveUp;
+	int saveUpRight;
+	int saveCentralLeft;
+	int saveCentral;
+	int saveCentralRight;
+	int saveDownLeft;
+	int saveDown;
+	int saveDownRight;
+	
 	int res;
 	struct timespec  tv1, tv2;
 	FILE *f_in, *f_out, *f_golden;
@@ -117,48 +134,63 @@ double sobel(unsigned char *input, unsigned char *output, unsigned char *golden)
 	clock_gettime(CLOCK_MONOTONIC_RAW, &tv1);
 	/* For each pixel of the output image */
 	
-	for (i=1; i<SIZE-1; i+=1) {
-		for (j=1; j<SIZE-1; j+=1) {
+
+	for (i=1; i<SIZE-1; i+=1) {	
+		iMinus1 = (i-1)*SIZE;
+		iMinus0 = (i)*SIZE;
+		iPlus1   = (i+1)*SIZE;
+		for (j=1;j<SIZE-1; j++) {
+			jMinus1 = j -1;
+			jMinus0 = j;
+			jPlus1 = j + 1;
+
+			saveUpLeft = input[iMinus1 + jMinus1];
+			saveUp = input[iMinus1 + jMinus0];
+			saveUpRight = input[iMinus1 + jPlus1 ];
+			saveCentralLeft = input[iMinus0 + jMinus1];
+			saveCentral =  input[iMinus0 + jMinus0];
+			saveCentralRight = input[iMinus0 + jPlus1 ];
+			saveDownLeft = input[iPlus1 + jMinus1];
+			saveDown = input[iPlus1 + jMinus0];
+			saveDownRight = input[iPlus1 + jPlus1];
 			
 			//LOOP 1
-			
 			//horizontal
 			tmp1 = 0;
-			tmp1 += input[(i - 1)*SIZE + j -1] * horiz_operator[0][0];
-                        tmp1 += input[(i - 1)*SIZE + j + 0] * horiz_operator[0][1];
-                        tmp1 += input[(i - 1)*SIZE + j + 1] * horiz_operator[0][2];
+			tmp1 += saveUpLeft * horiz_operator[0][0];
+                        tmp1 += saveUp * horiz_operator[0][1];
+                        tmp1 += saveUpRight * horiz_operator[0][2];
 
-                        tmp1 += input[(i + 0)*SIZE + j - 1] * horiz_operator[1][0];
-                        tmp1 += input[(i + 0)*SIZE + j + 0] * horiz_operator[1][1];
-                        tmp1 += input[(i + 0)*SIZE + j + 1] * horiz_operator[1][2];
+                        tmp1 += saveCentralLeft * horiz_operator[1][0];
+                        tmp1 += saveCentral * horiz_operator[1][1];
+                        tmp1 += saveCentralRight * horiz_operator[1][2];
 
-                        tmp1 += input[(i + 1)*SIZE + j - 1] * horiz_operator[2][0];
-                        tmp1 += input[(i + 1)*SIZE + j + 0 ] * horiz_operator[2][1];
-                        tmp1 += input[(i + 1)*SIZE + j + 1] * horiz_operator[2][2];
-
+                        tmp1 += saveDownLeft * horiz_operator[2][0];
+                        tmp1 += saveDown * horiz_operator[2][1];
+                        tmp1 += saveDownRight * horiz_operator[2][2];
 			
 			//vertical
 			tmp2 = 0;
-			tmp2 += input[(i - 1)*SIZE + j -1] * vert_operator[0][0];
-                        tmp2 += input[(i - 1)*SIZE + j + 0] * vert_operator[0][1];
-                        tmp2 += input[(i - 1)*SIZE + j + 1] * vert_operator[0][2];
+			tmp2 += saveUpLeft * vert_operator[0][0];
+                        tmp2 += saveUp * vert_operator[0][1];
+                        tmp2 += saveUpRight  * vert_operator[0][2];
 
-                        tmp2 += input[(i + 0)*SIZE + j - 1] * vert_operator[1][0];
-                        tmp2 += input[(i + 0)*SIZE + j + 0] * vert_operator[1][1];
-                        tmp2 += input[(i + 0)*SIZE + j + 1] * vert_operator[1][2];
+                        tmp2 += saveCentralLeft * vert_operator[1][0];
+                        tmp2 += saveCentral * vert_operator[1][1];
+                        tmp2 += saveCentralRight * vert_operator[1][2];
 
-                        tmp2 += input[(i + 1)*SIZE + j - 1] * vert_operator[2][0];
-                        tmp2 += input[(i + 1)*SIZE + j + 0 ] * vert_operator[2][1];
-                        tmp2 += input[(i + 1)*SIZE + j + 1] * vert_operator[2][2];
+                        tmp2 += saveDownLeft * vert_operator[2][0];
+                        tmp2 += saveDown * vert_operator[2][1];
+                        tmp2 += saveDownRight * vert_operator[2][2];
 		
 
 			p = pow( tmp1, 2) + 
 				pow(tmp2, 2);
 			res = (int)sqrt(p);
 			if (res > 255)
-				output[i*SIZE + j] = 255;      
+				output[iMinus0 + jMinus0] = 255;      
 			else
-				output[i*SIZE + j] = (unsigned char)res;
+				output[iMinus0 + jMinus0] = (unsigned char)res;
 	
 			
 		}
@@ -168,6 +200,9 @@ double sobel(unsigned char *input, unsigned char *output, unsigned char *golden)
 			PSNR += t;					
 		}
 	}
+
+
+	
 
 
 	PSNR /= (double)(SIZE*SIZE);

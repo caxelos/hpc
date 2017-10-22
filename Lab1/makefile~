@@ -4,17 +4,17 @@
 
 
 
-DIRECTORIES =  0_orig 1_loopInter 2_loopUnrol 3_loopFusion 4_funcInline 5_loopInvariant
-#SRC_DIR = $(MODULES)
-#BUILD_DIR = $(MODULES)
+MODULES = 0_orig
+SRC_DIR = $(MODULES)
+BUILD_DIR = $(MODULES)
 
-#SRC = $(foreach sdir, $(MODULES), $(*.c) )
-#OBJ = $(patsubst %.c, %.o, $(SRC) )
+SRC = $(foreach sdir, $(MODULES), $(*.c) )
+OBJ = $(patsubst %.c, %.o, $(SRC) )
 
-#vpath %.c $(SRC_DIR)
+vpath %.c $(SRC_DIR)
 #Add any executable you want to be created here.
-#EXECUTABLES_O0	= 0_orig_O0 
-#EXECUTABLES_FAST = 0_orig_fast 
+EXECUTABLES_O0	= 0_orig_O0 
+EXECUTABLES_FAST = 0_orig_fast 
 
 #This is the compiler to use
 CC = icc
@@ -24,33 +24,33 @@ CFLAGS_O0 = -Wall -O0
 CFLAGS_FAST = -Wall -fast
 
 #These are the flags passed to the linker. Nothing in our case
-#LDFLAGS = -lm
+LDFLAGS = -lm
 
 
-#$(CC) $(CFLAGS_FAST) -g $1/$1.c  -o $1/$1_fast
+
 # my make
-define make-goal 
-$1/$1: 
-	$(CC) $(CFLAGS_O0) -c $1/$1.c  -o $1/$1_O0
-	$(CC) $(CFLAGS_FAST) -c $1/$1.c  -o $1/$1_fast	
+define make-goal: $(EXECUTABLES_FAST)
+%: %.c
+	$(CC) $(CFLAGS_FAST) $< -o $@ $(LDFLAGS)
 endef
 
 .PHONY: all checkdirs clean
 
-$(foreach currDir,$(DIRECTORIES),$(eval $(call make-goal,$(currDir))))
-
 	
+# make all will create all executables
+#all: $(EXECUTABLES_FAST) 
+
 # This is the rule to create any executable from the corresponding .c 
-# file with the shttps://www.facebook.com/ame name.
+# file with the same name.
 
 # make clean will remove all executables, jpg files and the 
 # output of previous executions.
 clean:
-	rm -f $(EXECUTABLES_O0) *.jpg output_sobel.grey
+	rm -f $(EXECUTABLES) *.jpg output_sobel.grey
 
 
-
-
+all:
+	$(foreach bdir,$(BUILD_DIR),$(eval $(call make-goal,$(bdir))))
 
 # make image will create the output_sobel.jpg from the output_sobel.grey. 
 # Remember to change this rule if you change the name of the output file.
