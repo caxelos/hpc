@@ -39,24 +39,21 @@ unsigned char input[SIZE*SIZE], output[SIZE*SIZE], golden[SIZE*SIZE];
  * pixel we process.														  */
 int convolution2D(int posy, int posx, const unsigned char *input, char operator[][3]) {
 	int res;
-  	int value1, value2,value3;
-
-	value1 = (posy -1)<<12;
-	value2 = (posy)<<12;
-	value3 = (posy +1)<<12;
-
+  
 	res = 0;
-	res += input[value1+ posx -1] * operator[0][0];
-	res += input[value1 + posx ] * operator[0][1];
-	res += input[value1 + posx + 1] * operator[0][2];
+	
 
-	res += input[value2 + posx -1] * operator[1][0];
-	res += input[value2 + posx ] * operator[1][1];
-	res += input[value2 + posx + 1] * operator[1][2];
+	res += input[(posy -1)*SIZE+ posx -1] * operator[0][0];
+	res += input[(posy -1)*SIZE + posx ] * operator[0][1];
+	res += input[(posy -1)*SIZE + posx + 1] * operator[0][2];
 
-	res += input[value3 + posx -1] * operator[2][0];
-	res += input[value3 + posx ] * operator[2][1];
-	res += input[value3 + posx + 1] * operator[2][2];
+	res += input[(posy )*SIZE + posx -1] * operator[1][0];
+	res += input[(posy )*SIZE + posx ] * operator[1][1];
+	res += input[(posy )*SIZE + posx + 1] * operator[1][2];
+
+	res += input[(posy + 1)*SIZE + posx -1] * operator[2][0];
+	res += input[(posy + 1)*SIZE + posx ] * operator[2][1];
+	res += input[(posy + 1)*SIZE + posx + 1] * operator[2][2];
 	
 
 	return res;
@@ -73,6 +70,24 @@ double sobel(unsigned char *input, unsigned char *output, unsigned char *golden)
 	double PSNR = 0, t;
 	int i, j;
 	unsigned int p;
+	int tmp1, tmp2;
+	int iMinus1;//added
+	int iMinus0;//added
+	int iPlus1;//added
+	int jMinus1;//added
+	int jMinus0;//added
+	int jPlus1;//added
+
+	int saveUpLeft;
+	int saveUp;
+	int saveUpRight;
+	int saveCentralLeft;
+	int saveCentral;
+	int saveCentralRight;
+	int saveDownLeft;
+	int saveDown;
+	int saveDownRight;
+	
 	int res;
 	struct timespec  tv1, tv2;
 	FILE *f_in, *f_out, *f_golden;
@@ -119,60 +134,79 @@ double sobel(unsigned char *input, unsigned char *output, unsigned char *golden)
 	clock_gettime(CLOCK_MONOTONIC_RAW, &tv1);
 	/* For each pixel of the output image */
 	
-	for (i=1; i<SIZE-1; i+=1) {
-		for (j=1; j<SIZE-1; j+=4) {
-			//LOOP 1
-			p = pow(convolution2D(i, j, input, horiz_operator), 2) + 
-				pow(convolution2D(i, j, input, vert_operator), 2);
-			res = (int)sqrt(p);
-			if (res > 255)
-				output[i*SIZE + j] = 255;      
-			else
-				output[i*SIZE + j] = (unsigned char)res;
+
+
 	
-
-			//LOOP 2		 								  
-			p = pow(convolution2D(i, j+1, input, horiz_operator), 2) + 
-				pow(convolution2D(i, j+1, input, vert_operator), 2);
-			res = (int)sqrt(p);											  
-			if (res > 255)
-				output[i*SIZE + j+1] = 255;      
-			else
-				output[i*SIZE + j+1] = (unsigned char)res;
-
-
-			//LOOP 3					  
-			p = pow(convolution2D(i, j+2, input, horiz_operator), 2) + 
-				pow(convolution2D(i, j+2, input, vert_operator), 2);
-			res = (int)sqrt(p);											   
-			if (res > 255)
-				output[i*SIZE + j+2] = 255;      
-			else
-				output[i*SIZE + j+2] = (unsigned char)res;
-
 			
+	for (i=1; i<SIZE-1; i+=1) {	
+		saveUpLeft = input[((i-1)<<12)];
+		saveUp = input[((i-1)<<12)+1];
+		saveUpRight = input[((i-1)<<12)+2];
+		saveCentralLeft = input[(i<<12)];
+		saveCentral =  input[(i<<12)+1];
+		saveCentralRight = input[(i<<12)+2 ];
+		saveDownLeft = input[((i+1)<<12)];
+		saveDown = input[((i+1)<<12)+1];
+		saveDownRight = input[((i+1)<<12)+2];
+
+		for (j=1;j<SIZE-1; j++) {
+			//LOOP 1
+			
+			//horizontal
+			tmp1 = 0;
+			tmp1 -= saveUpLeft;
+                        tmp1 += saveUpRight;
+                        tmp1 -= (saveCentralLeft<<1);
+                        tmp1 += (saveCentralRight<<1);
+                        tmp1 -= saveDownLeft;
+                        tmp1 += saveDownRight;
+			
+			//vertical
+			tmp2 = 0;
+			tmp2 += saveUpLeft;
+                        tmp2 += (saveUp<<1);
+                        tmp2 += saveUpRight;
+                        tmp2 -= saveDownLeft;
+                        tmp2 -= (saveDown<<1);
+                        tmp2 -= saveDownRight;
 		
-			//LOOP 4		 
-			p = pow(convolution2D(i, j+3, input, horiz_operator), 2) + 
-				pow(convolution2D(i, j+3, input, vert_operator), 2);
+
+			p = pow( tmp1, 2) + 
+				pow(tmp2, 2);
 			res = (int)sqrt(p);
-			if (res > 255)											  
-				output[i*SIZE + j+3] = 255;      
+			if (res > 255)
+				output[(i<<12) + j] = 255;  //output[iMinus0 + jMinus0]    
 			else
-				output[i*SIZE + j+3] = (unsigned char)res;					
-			
+				output[(i<<12) + j] = (unsigned char)res;
+	
 		
+			saveUpLeft = saveUp;
+			saveUp = saveUpRight;
+			saveUpRight = input[((i-1)<<12) +j+2];
+			saveCentralLeft = saveCentral;
+			saveCentral =  saveCentralRight;
+			saveCentralRight = input[(i<<12) +j+2];
+			saveDownLeft = saveDown;
+			saveDown = saveDownRight;
+			saveDownRight = input[((i+1)<<12) +j+2];
+	
 		}
 
 		for (j=1; j<SIZE-1; j++) {
-			t = pow((output[i*SIZE+j] - golden[i*SIZE+j]),2);	
+			t = pow((output[(i<<12)+j] - golden[(i<<12)+j]),2);	
 			PSNR += t;					
 		}
 	}
 
 
-	PSNR /= (double)(SIZE*SIZE);
-	PSNR = 10*log10(65536/PSNR);
+
+	if (PSNR == 0)
+		PSNR = (double)1/0;
+	else {
+		PSNR /= (double)((SIZE<<12));
+		PSNR = 10*log10(65536/PSNR);
+	}
+
 
 	// This is the end of the main computation. Take the end time,  
 	//calculate the duration of the computation and report it. 	
