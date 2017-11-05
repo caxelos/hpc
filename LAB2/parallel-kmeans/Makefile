@@ -20,7 +20,7 @@ all: seq
 CC             = icc
 
 INCFLAGS    = -I.
-OPTFLAGS    = -fast -DNDEBUG
+OPTFLAGS    = -fast -DNDEBUG -qopenmp
 LDFLAGS     = $(OPTFLAGS)
 
 

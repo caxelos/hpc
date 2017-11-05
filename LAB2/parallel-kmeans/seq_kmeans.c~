@@ -38,7 +38,8 @@ float euclid_dist_2(int    numdims,  /* no. dimensions */
     float ans=0.0;    
     
     ok++;
-        
+    printf("ok is %ld\n", ok);
+    
     for (i=0; i<numdims; i++)  {//20 times!
       ans += (coord1[i]-coord2[i]) * (coord1[i]-coord2[i]);
     }
@@ -64,14 +65,14 @@ int find_nearest_cluster(int     numClusters, /* no. clusters */
 
     min_dist = euclid_dist_2(numCoords, object, clusters[0]);
       
-  #pragma omp parallel  shared(min_dist,index) private(dist) num_threads(4)
+  //#pragma omp parallel  shared(min_dist,index) private(dist) num_threads(28)
   {//begin of parallel region	
 
-      #pragma omp for schedule(static) nowait  
-      for (i=1; i<numClusters; i++) {//10 times!
+   //   #pragma omp for schedule(dynamic,20) nowait  
+      for (i=1; i<numClusters; i++) {//10000 times!!!
         dist = euclid_dist_2(numCoords, object, clusters[i]);
         /* no need square root */
-        #pragma omp critical  
+   //     #pragma omp critical  
         { 
           if (dist < min_dist) { /* find the min and its array index */
             min_dist = dist;
@@ -152,8 +153,6 @@ int seq_kmeans(float **objects,      /* in: [numObjs][numCoords] */
     free(newClusters[0]);
     free(newClusters);
     free(newClusterSize);
-
-printf("ok is %ld\n", ok);
 
     return 1;
 }

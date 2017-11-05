@@ -1,0 +1,1 @@
+diff Image_data/texture17695.bin.cluster_centres Image_data/texture17695.bin.cluster_centres_orig 
