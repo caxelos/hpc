@@ -210,7 +210,7 @@ int main(int argc, char **argv) {
   /*--- write the calculation time to a file ---*/
    sprintf(mytime, "%10.4f\n",clustering_timing);
   printf("mytime is %s\n", mytime);   
-   fd = open("mytime.txt", O_RDWR, S_IRWXU); if (fd<0) printf("error\n");
+   fd = open("mytime.txt", O_RDWR, S_IRWXU);
    if (fd <= 0) printf("error at open()\n");
    lseek(fd, 0, SEEK_END);
    if (strlen(mytime) != write(fd, mytime, strlen(mytime)))  printf("Error at write()\n");

@@ -36,9 +36,8 @@ float euclid_dist_2(int    numdims,  /* no. dimensions */
 
     int i;    
     float ans=0.0;    
-    
-    ok++;
         
+       
     for (i=0; i<numdims; i++)  {//20 times!
       ans += (coord1[i]-coord2[i]) * (coord1[i]-coord2[i]);
     }
@@ -64,22 +63,22 @@ int find_nearest_cluster(int     numClusters, /* no. clusters */
 
     min_dist = euclid_dist_2(numCoords, object, clusters[0]);
       
-  #pragma omp parallel  shared(min_dist,index) private(dist) num_threads(4)
-  {//begin of parallel region	
-
-      #pragma omp for schedule(static) nowait  
-      for (i=1; i<numClusters; i++) {//10 times!
-        dist = euclid_dist_2(numCoords, object, clusters[i]);
-        /* no need square root */
-        #pragma omp critical  
-        { 
-          if (dist < min_dist) { /* find the min and its array index */
-            min_dist = dist;
-            index    = i;
-          }
-        }
-      }
-    
+  //#pragma omp parallel shared(min_dist,index) private(dist) num_threads(4)
+  {
+  //	#pragma omp for  schedule(dynamic,250) nowait 
+	for (i=1; i<numClusters; i++) {//10 times!
+ 	       dist = euclid_dist_2(numCoords, object, clusters[i]);
+               /* no need square root */
+        
+  //    		#pragma omp critical 
+      		{ 
+          		if (dist < min_dist) { /* find the min and its array index */
+            			min_dist = dist;
+            			index    = i;
+          		}
+      		}
+      } 
+       
   }//end of parallel region
 
     return(index);
@@ -101,7 +100,9 @@ int seq_kmeans(float **objects,      /* in: [numObjs][numCoords] */
                                 new cluster */
     float    delta;          /* % of objects change their clusters */
     float  **newClusters;    /* [numClusters][numCoords] */
-
+volatile unsigned long  times=0;
+    omp_sched_t kind;
+  int chunk;
     /* initialize membership[] */
     for (i=0; i<numObjs; i++) membership[i] = -1;
 
@@ -116,25 +117,43 @@ int seq_kmeans(float **objects,      /* in: [numObjs][numCoords] */
     for (i=1; i<numClusters; i++)
         newClusters[i] = newClusters[i-1] + numCoords;
 
-    do {//mostly 5 times!
+    do {
         delta = 0.0;
-        printf("numObjs: %d\n", numObjs);
-        for (i=0; i<numObjs; i++) {//17695 times!
-            /* find the array index of nestest cluster center */
-            index = find_nearest_cluster(numClusters, numCoords, objects[i],
-                                         clusters);
+     //   printf("numObjs: %d\n", numObjs);
 
-            /* if membership changes, increase delta by 1 */
-            if (membership[i] != index) delta += 1.0;
+     #pragma omp parallel shared(times) 
+       {
+       		omp_get_schedule(&kind, &chunk);
+       		printf("threads: %d, scheduling:%d, chunk:%d\n", omp_get_num_threads(), kind, chunk  );
+       		#pragma omp for schedule(runtime) private(index,j) nowait
+               
+          	for (i=0; i<numObjs; i++) {
+             		/* find the array index of nestest cluster center */
+             		index = find_nearest_cluster(numClusters, numCoords, objects[i],clusters);
+			  
+		      
+            		/* if membership changes, increase delta by 1 */
+ 
+            		if (membership[i] != index) {
+				#pragma omp atomic
+				delta += 1.0;
+			}
+            		/* assign the membership to object i */
+			membership[i] = index;
+	
+		       #pragma omp critical
+ 		       {	      
+	            	/* update new cluster center : sum of objects located within */
+	            	newClusterSize[index]++;
+	            	for (j=0; j<numCoords; j++)
+	                	newClusters[index][j] += objects[i][j];
+           	       }			
+		      
+			 
+  		}
+//		printf("times: %ld\n", times);
+     } 
 
-            /* assign the membership to object i */
-            membership[i] = index;
-
-            /* update new cluster center : sum of objects located within */
-            newClusterSize[index]++;
-            for (j=0; j<numCoords; j++)
-                newClusters[index][j] += objects[i][j];
-        }
 
         /* average the sum and replace old cluster center with newClusters */
         for (i=0; i<numClusters; i++) {
@@ -146,14 +165,13 @@ int seq_kmeans(float **objects,      /* in: [numObjs][numCoords] */
             newClusterSize[i] = 0;   /* set back to 0 */
         }
             
+
         delta /= numObjs;
     } while (delta > threshold && loop++ < 500);
 
     free(newClusters[0]);
     free(newClusters);
     free(newClusterSize);
-
-printf("ok is %ld\n", ok);
 
     return 1;
 }
