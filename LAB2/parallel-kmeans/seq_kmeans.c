@@ -119,23 +119,16 @@ volatile unsigned long  times=0;
         newClusters[i] = newClusters[i-1] + numCoords;
 
 
-   #pragma omp parallel num_threads(4)
+   #pragma omp parallel 
         {
     do {
         #pragma omp single
         delta = 0.0;
-
-
-      // #pragma omp parallel shared(times) num_threads(4)
-       //{
-       	
-       		#pragma omp for schedule(dynamic,1) private(index,j)// nowait
-               
+       		#pragma omp for schedule(runtime) private(index,j)// nowait               
           	for (i=0; i<numObjs; i++) {
              		/* find the array index of nestest cluster center */
              		index = find_nearest_cluster(numClusters, numCoords, objects[i],clusters);
 			  
-		      
             		/* if membership changes, increase delta by 1 */
  
             		if (membership[i] != index) {
@@ -151,16 +144,10 @@ volatile unsigned long  times=0;
 	            	newClusterSize[index]++;
 	            	for (j=0; j<numCoords; j++)
 	                	newClusters[index][j] += objects[i][j];
-           	       }			
-		      
-			 
+           	       }					 
   		}
-
-     
-
-
         /* average the sum and replace old cluster center with newClusters */
-	#pragma omp for schedule(dynamic,1) private(j)
+	#pragma omp for schedule(runtime) private(j)
         for (i=0; i<numClusters; i++) {
             for (j=0; j<numCoords; j++) {
                 if (newClusterSize[i] > 0)
