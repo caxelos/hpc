@@ -1,0 +1,52 @@
+
+*** These modified files were found in JOE when it aborted on Tue Nov  7 17:30:01 2017
+*** JOE was aborted by UNIX signal 1
+
+*** File '(Unnamed)'
+golden
+f_in
+
+*** File '(Unnamed)'
+mytime.txt
+mytime.txt
+mytime.txt
+seq_kmeans.c
+seq_kmeans.c
+seq_kmeans.c
+mytime.txt
+mytime.txt
+mytime.txt
+mytime.txt
+mytime.txt
+
+*** File '* Startup Log *'
+Processing '/etc/joe/joerc'...
+Processing '/etc/joe/ftyperc'...
+Finished processing /etc/joe/ftyperc
+Finished processing /etc/joe/joerc
+
+*** These modified files were found in JOE when it aborted on Tue Nov  7 23:44:03 2017
+*** JOE was aborted by UNIX signal 1
+
+*** File '(Unnamed)'
+golden
+f_in
+
+*** File '(Unnamed)'
+mytime.txt
+mytime.txt
+mytime.txt
+mytime.txt
+mytime.txt
+seq_main.c
+seq_kmeans.c
+seq_kmeans.c
+seq_kmeans.c
+seq_kmeans.c
+1000_clusters.sh
+
+*** File '* Startup Log *'
+Processing '/etc/joe/joerc'...
+Processing '/etc/joe/ftyperc'...
+Finished processing /etc/joe/ftyperc
+Finished processing /etc/joe/joerc

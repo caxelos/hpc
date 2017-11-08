@@ -103,6 +103,7 @@ int seq_kmeans(float **objects,      /* in: [numObjs][numCoords] */
 volatile unsigned long  times=0;
     omp_sched_t kind;
   int chunk;
+  int cond=0;
     /* initialize membership[] */
     for (i=0; i<numObjs; i++) membership[i] = -1;
 
@@ -110,22 +111,25 @@ volatile unsigned long  times=0;
     newClusterSize = (int*) calloc(numClusters, sizeof(int));
     assert(newClusterSize != NULL);
 
-    newClusters    = (float**) malloc(numClusters *            sizeof(float*));
+    newClusters    = (float**) malloc(numClusters * sizeof(float*));
     assert(newClusters != NULL);
     newClusters[0] = (float*)  calloc(numClusters * numCoords, sizeof(float));
     assert(newClusters[0] != NULL);
     for (i=1; i<numClusters; i++)
         newClusters[i] = newClusters[i-1] + numCoords;
 
-    do {
-        delta = 0.0;
-     //   printf("numObjs: %d\n", numObjs);
 
-     #pragma omp parallel shared(times) 
-       {
-       		omp_get_schedule(&kind, &chunk);
-       		printf("threads: %d, scheduling:%d, chunk:%d\n", omp_get_num_threads(), kind, chunk  );
-       		#pragma omp for schedule(runtime) private(index,j) nowait
+   #pragma omp parallel num_threads(4)
+        {
+    do {
+        #pragma omp single
+        delta = 0.0;
+
+
+      // #pragma omp parallel shared(times) num_threads(4)
+       //{
+       	
+       		#pragma omp for schedule(dynamic,1) private(index,j)// nowait
                
           	for (i=0; i<numObjs; i++) {
              		/* find the array index of nestest cluster center */
@@ -151,11 +155,12 @@ volatile unsigned long  times=0;
 		      
 			 
   		}
-//		printf("times: %ld\n", times);
-     } 
+
+     
 
 
         /* average the sum and replace old cluster center with newClusters */
+	#pragma omp for schedule(dynamic,1) private(j)
         for (i=0; i<numClusters; i++) {
             for (j=0; j<numCoords; j++) {
                 if (newClusterSize[i] > 0)
@@ -165,9 +170,22 @@ volatile unsigned long  times=0;
             newClusterSize[i] = 0;   /* set back to 0 */
         }
             
-
+	#pragma omp single
         delta /= numObjs;
-    } while (delta > threshold && loop++ < 500);
+
+        #pragma omp single
+	cond = delta > threshold && loop++ < 500;
+
+	#pragma omp barrier
+
+	
+   } while (cond);
+
+   //} while (delta > threshold && loop++ < 500);
+
+
+ }//end of parallel region
+
 
     free(newClusters[0]);
     free(newClusters);
