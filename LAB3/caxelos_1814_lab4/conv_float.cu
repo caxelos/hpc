@@ -7,11 +7,9 @@
 #include <stdlib.h>
 #include <cuda.h>
 #include <cuda_runtime_api.h>
-unsigned int filter_radius;
+const unsigned int filter_radius=16;
 
 
-#define NUM_THREADS imageH*imageW
-#define NUM_BLOCKS 1
 
 cudaError_t code;
 
@@ -22,8 +20,8 @@ cudaError_t code;
     printf("Type of error: %s\n", cudaGetErrorString( code )); \
    }
 
-//#define FILTER_LENGTH 	(2 * filter_radius + 1)
-#define FILTER_LENGTH 9//33
+#define FILTER_LENGTH 	(2 * filter_radius + 1)
+
 
 #define ABS(val)  	((val)<0.0 ? (-(val)) : (val))
 #define accuracy  	0.00005 
@@ -95,7 +93,9 @@ void convolutionColumnCPU(
 
 /*
  * GPU convolution Rows
- */
+ */ 
+
+
 __global__ void convolutionRowGPU(
           float *d_Dst, 
           float *d_Src, 
@@ -104,23 +104,45 @@ __global__ void convolutionRowGPU(
           int imageH, 
           int filterR)                           
 {
-	  float sum=0;
-          int x, d, k;          
-          x = threadIdx.x + blockDim.x * blockIdx.x;
-          
-          for (k = -filterR; k <= filterR; k++) {  
-            d = x%imageW + k;
-            
-            if (d >= 0 && d < imageW) {
-              sum += d_Src[x + k] * d_Filter[filterR - k];
-            }
-            d_Dst[x] = sum;
-          
-          }
+
+	__shared__ float sh_Src[32][32];
+      
+	int col = threadIdx.x + blockDim.x * blockIdx.x;
+	int row = threadIdx.y + blockDim.y * blockIdx.y;
+        int index = row*imageW+col;
+
+/*
+	if (index == 4095)  {
+   
+   	  printf("EKTUPWTHIKEEEEEE...\nindex=%d, blockDim.y=%d, blockIdx.y=%d, threadIDx.y=%d\n", index, blockDim.y, blockIdx.y, threadIdx.y);
+	   printf("blockDim.x=%d, blockIdx.x=%d, threadIDx.x=%d\n", blockDim.x, blockIdx.x, threadIdx.x);
+	  printf("gridDim.x=%d, gridDim.y=%d\n", gridDim.x, gridDim.y);
+        }
+*/
+	sh_Src[threadIdx.y][threadIdx.x] = d_Src[index];
+	
 
 
+	__syncthreads();	  
+           
+      
+        int  k;          
+ 
+      float sum = 0;
+      for (k = -filterR; k <= filterR; k++) {
+
+        int d = col + k;
+	
+        if (d >= 0 && d < imageW) {
+          sum += sh_Src[threadIdx.y][ threadIdx.x + k ] * d_Filter[filterR - k];
+        }     
+	
+        d_Dst[index] = sum;
+      }  	
 }
 
+//sh_Src[threadIdx.y][ threadIdx.x + k ]
+//sh_Src[ threadIdx.y + k ][threadIdx.x] 
 /*
  * GPU convolution Columns
  */
@@ -131,48 +153,53 @@ __global__ void convolutionColumnGPU(
           int imageW, 
           int imageH, 
           int filterR)                           
-{
-        
-        float sum=0;
-          int x, d, k;          
-          x = threadIdx.x + blockDim.x * blockIdx.x;
-          
-          for (k = -filterR; k <= filterR; k++) {  
-            d = x/imageW + k;
-            
-            if (d >= 0 && d < imageH) {
-              sum += d_Src[d * imageW + x%imageW] * d_Filter[filterR - k] ;
-            }
-            d_Dst[x] = sum;
-          
-          }
-     
+{		
+	__shared__ float sh_Src[32][32];
+
+	
+
+	int col = threadIdx.x + blockDim.x * blockIdx.x;
+	int row = threadIdx.y + blockDim.y * blockIdx.y;
+
+	
+        int index = row*imageW+col;	
+
+	sh_Src[threadIdx.y][threadIdx.x] = d_Src[index];
+
+	__syncthreads();         
+	 
+
+    
+          int  k;          
+       
+
+
+      float sum = 0;
+
+      for (k = -filterR; k <= filterR; k++) {
+        int d = row + k;
+	
+        if (d >= 0 && d < imageH) {//(y+k)*WIDTH + y = y *WIDTH + k*WIDTH + y = row - 1 + col
+          sum += sh_Src[ threadIdx.y + k ][threadIdx.x] * d_Filter[filterR - k];
+        }   
+        d_Dst[index] = sum;
+      }
+   
+	/* 
+      for (y = 0; y < imageH; y++) {//x = cols
+    for (x = 0; x < imageW; x++) {y = rows
+      float sum = 0;// 
+
+      for (k = -filterR; k <= filterR; k++) {
+        int d = y + k;
+
+        if (d >= 0 && d < imageH) {
+          sum += h_Src[d * imageW + x] * h_Filter[filterR - k];
+        }   
+        h_Dst[y * imageW + x] = sum;
+      }*/
 }
 
-__global__ void convolutionTileRowGPU (
-
-)  
-
-{
-
-//int i = blockIdx.x * blockDim.x + threadIdx.x;
-
-
-
-
-}
-
-
-
-__global__ void convolutionTileColumnGPU (
-
-)  
-
-{
-
-
-
-}
 
 ////////////////////////////////////////////////////////////////////////////////
 // Main program
@@ -186,14 +213,14 @@ int main(int argc, char **argv) {
     int imageW;
     int imageH;
     unsigned int i;
-
+    
 
     	
     // Ta imageW, imageH ta dinei o xrhsths kai thewroume oti einai isa,
     // dhladh imageW = imageH = N, opou to N to dinei o xrhsths.
     // Gia aplothta thewroume tetragwnikes eikones.  
-   if (argc < 3)  {
-      printf("Few arguments. Run as ./<name>  <image_size> <filter_radius>,where <image_size> should be a power of two and greater than 2*filter_radius+ 1\n");
+   if (argc < 2)  {
+      printf("Few arguments. Run as ./<name>  <image_size>,where <image_size> should be a power of two and greater than 33\n");
       return -1;
    } 
 
@@ -205,13 +232,6 @@ int main(int argc, char **argv) {
     imageH = imageW;
 
  
-    if ( strlen(argv[2]) == 0 ) {
-      printf("Error at argv[1]. Please give the filter radius  as 2nd argument(e.g. ./exe 100\n"); 
-      return -1;
-    }
-    filter_radius = atoi(argv[2]);
-
-
     printf("Image Width x Height = %i x %i\n\n", imageW, imageH);
     printf("Allocating and initializing host arrays...\n");
     // Tha htan kalh idea na elegxete kai to apotelesma twn malloc...
@@ -255,14 +275,12 @@ h_OutputCPU==NULL || h_OutputGPU == NULL) {
     cudaMemcpy(d_Input,h_Input,imageW*imageH*sizeof(float),cudaMemcpyHostToDevice);
     CUDA_ERROR_CHECK(1);
     
-    //cudaMemcpy(d_Filter,h_Filter,FILTER_LENGTH*sizeof(float),cudaMemcpyHostToDevice);
+    
    
     code = cudaMemcpyToSymbol(
        d_Filter,
        h_Filter,
        FILTER_LENGTH*sizeof( float )
-       //0,
-       //cudaMemcpyHostToDevice
     ); if (code != cudaSuccess) printf("Error copying from host Memory to Constant Memory!\n");
      
 
@@ -274,13 +292,25 @@ h_OutputCPU==NULL || h_OutputGPU == NULL) {
     convolutionRowCPU(h_Buffer, h_Input, h_Filter, imageW, imageH, filter_radius); // convolution kata grammes
     convolutionColumnCPU(h_OutputCPU, h_Buffer, h_Filter, imageW, imageH, filter_radius);//convolution kata sthles    
 
-    convolutionRowGPU<<<NUM_BLOCKS , NUM_THREADS>>>(d_Buffer,
+
+  /*
+   * calculate threads per block
+   */
+
+
+  dim3 threadsPerBlock(32,32);
+  dim3 numBlocks(imageW/threadsPerBlock.x, imageH/threadsPerBlock.y);
+
+
+ 
+
+    convolutionRowGPU<<<numBlocks , threadsPerBlock>>>(d_Buffer,
 d_Input/*,d_Filter*/, imageH, imageW, filter_radius);
     
     cudaThreadSynchronize();//barrier of host     
     CUDA_ERROR_CHECK(3);
          
-    convolutionColumnGPU<<<NUM_BLOCKS , NUM_THREADS>>>(d_Output_GPU, d_Buffer,
+    convolutionColumnGPU<<<numBlocks, threadsPerBlock>>>(d_Output_GPU, d_Buffer,
  /*d_Filter,*/ imageH, imageW, filter_radius);
     cudaThreadSynchronize();//barrier of host
     CUDA_ERROR_CHECK(4);
