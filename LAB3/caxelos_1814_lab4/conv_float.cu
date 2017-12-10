@@ -26,6 +26,10 @@ cudaError_t code;
 #define ABS(val)  	((val)<0.0 ? (-(val)) : (val))
 #define accuracy  	0.00005 
 
+
+#define RIGHT 3
+#define LEFT 4
+#define DOWN 5
  
 
 __constant__  __device__ float d_Filter[FILTER_LENGTH];
@@ -107,22 +111,19 @@ __global__ void convolutionRowGPU(
 
 	__shared__ float sh_Src[32][32];
       
-	int col = threadIdx.x + blockDim.x * blockIdx.x;
-	int row = threadIdx.y + blockDim.y * blockIdx.y;
-        int index = row*imageW+col;
+	int h_startCol = threadIdx.x + blockDim.x * blockIdx.x -16;
+	int h_startRow = threadIdx.y + blockDim.y * blockIdx.y -16;
+        int h_index = row*imageW+col;
+	int numRightShifts = 0, numDownShifts = 0;
+	int shiftDirection = RIGHT;
 
-/*
-	if (index == 4095)  {
-   
-   	  printf("EKTUPWTHIKEEEEEE...\nindex=%d, blockDim.y=%d, blockIdx.y=%d, threadIDx.y=%d\n", index, blockDim.y, blockIdx.y, threadIdx.y);
-	   printf("blockDim.x=%d, blockIdx.x=%d, threadIDx.x=%d\n", blockDim.x, blockIdx.x, threadIdx.x);
-	  printf("gridDim.x=%d, gridDim.y=%d\n", gridDim.x, gridDim.y);
-        }
-*/
-	sh_Src[threadIdx.y][threadIdx.x] = d_Src[index];
 	
+	if ( (h_startCol >= 0) && (h_startCol < imageW) && (h_startRow >= 0) && (h_startRow < imageH) )  {
+	  sh_Src[threadIdx.y][threadIdx.x] = d_Src[index];  
+	}
 
-
+	//sh_Src[threadIdx.y][threadIdx.x] = d_Src[index];
+	
 	__syncthreads();	  
            
       
@@ -134,11 +135,63 @@ __global__ void convolutionRowGPU(
         int d = col + k;
 	
         if (d >= 0 && d < imageW) {
-          sum += sh_Src[threadIdx.y][ threadIdx.x + k ] * d_Filter[filterR - k];
+          sum += sh_Src[(threadIdx.y + numDownShifts)%32 ][ (numRightShifts + threadIdx.x + k)%32 ] * d_Filter[filterR - k];
         }     
 	
         d_Dst[index] = sum;
       }  	
+
+
+      /*
+       * All threads in same block follow the same path in the bellow branches, so no problem:)
+       */
+      if (shiftDirection == RIGHT)  {
+	numRightShifts++;
+
+	if (numRightShifts != 32)  {
+	
+	  if ( (h_startCol + numRightShifts >= 0) && (h_startCol + numRightShifts < imageW) && (h_startRow + numDownShifts >= 0) && (h_startRow + numDownShifts< imageH) )  {
+            sh_Src[threadIdx.y][0] = h_Src[h_startRow*imageW + startCol + 32];//PROVLIMA ME TA ORIA
+	  }
+
+	}
+	else {
+
+
+	  if ( (h_startCol + numRightShifts >= 0) && (h_startCol + numRightShifts < imageW) && (h_startRow + numDownShifts >= 0) && (h_startRow + numDownShifts< imageH) )  {
+	    sh_Src[0][threadIdx.x] = h_Src[(startRow+32)*imageW + startCol];
+	  }
+	  numRightShifts--;
+          shiftDirection = LEFT;
+        }
+
+      }
+      else if (shiftDirection == LEFT)  {
+	numRightShifts--;  
+
+	if (numRightShifts != 0)  {
+	  if ( (h_startCol + numRightShifts >= 0) && (h_startCol + numRightShifts < imageW) && (h_startRow + numDownShifts >= 0) && (h_startRow + numDownShifts< imageH) )  {
+            sh_Src[threadIdx.y][31] = h_Src[startRow*imageW + startCol - 1];
+	  }	
+
+    	}   
+	else (numRightShifts == 0)  {
+ 
+ 	  if ( (h_startCol + numRightShifts >= 0) && (h_startCol + numRightShifts < imageW) && (h_startRow + numDownShifts >= 0) && (h_startRow + numDownShifts< imageH) )  {	
+	    sh_Src[0][threadIdx.x] = h_Src[(startRow+32)*imageW + startCol];
+	  }
+
+	  shiftDirection = RIGHT;
+        }	
+
+      }
+     
+      __syncthreads(); 	
+
+      
+
+
+	
 }
 
 //sh_Src[threadIdx.y][ threadIdx.x + k ]
